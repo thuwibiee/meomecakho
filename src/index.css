@@ -1,0 +1,301 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --milk-cream: #FFF9F4;
+    --strawberry-milk: #F6A6B8;
+    --fish-blue: #A9C5F2;
+    --butter-yellow: #F7DDA0;
+    --cocoa-ink: #795653;
+    --dark-blue: #526C91;
+    --dark-pink: #A6536A;
+  }
+
+  body {
+    background-color: var(--milk-cream);
+    color: var(--cocoa-ink);
+    font-family: 'Nunito', 'Quicksand', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+}
+
+/* Cute Japanese Kawaii Accents & Gingham Background */
+.bg-gingham-soft {
+  background-color: #FFF9F4;
+  background-image:
+    linear-gradient(45deg, rgba(246, 166, 184, 0.08) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(246, 166, 184, 0.08) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(246, 166, 184, 0.08) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(246, 166, 184, 0.08) 75%);
+  background-size: 24px 24px;
+}
+
+.bg-gingham-blue {
+  background-color: #FFF9F4;
+  background-image:
+    linear-gradient(45deg, rgba(169, 197, 242, 0.12) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(169, 197, 242, 0.12) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(169, 197, 242, 0.12) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(169, 197, 242, 0.12) 75%);
+  background-size: 20px 20px;
+}
+
+/* Receipt paper zigzag or dashed border */
+.receipt-dashed {
+  border-bottom: 2px dashed rgba(121, 86, 83, 0.25);
+}
+
+/* Soft paper shadow */
+.shadow-kawaii {
+  box-shadow: 0 4px 18px -2px rgba(121, 86, 83, 0.08), 0 2px 6px -1px rgba(121, 86, 83, 0.04);
+}
+
+.shadow-kawaii-hover {
+  box-shadow: 0 10px 25px -4px rgba(246, 166, 184, 0.25), 0 4px 10px -2px rgba(121, 86, 83, 0.08);
+}
+
+/* Custom cute scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: #FFF9F4;
+}
+::-webkit-scrollbar-thumb {
+  background: #F6A6B8;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #A6536A;
+}
+
+/* 3D Liquid Glass Button Effect */
+.liquid-glass-btn {
+  position: relative;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(246, 166, 184, 0.8) 35%, rgba(255, 182, 193, 0.9) 70%, rgba(255, 240, 245, 0.95) 100%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  box-shadow:
+    inset 0 2px 3px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -3px 6px 0 rgba(214, 51, 108, 0.35),
+    0 14px 30px -4px rgba(246, 166, 184, 0.55),
+    0 6px 14px -2px rgba(121, 86, 83, 0.18);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+.liquid-glass-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.1) 100%);
+  border-radius: 9999px 9999px 0 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.liquid-glass-btn:hover {
+  transform: translateY(-2.5px) scale(1.02);
+  box-shadow:
+    inset 0 2px 4px 0 rgba(255, 255, 255, 1),
+    inset 0 -3px 8px 0 rgba(214, 51, 108, 0.4),
+    0 22px 40px -4px rgba(246, 166, 184, 0.7),
+    0 10px 18px -2px rgba(121, 86, 83, 0.22);
+}
+
+/* Dynamic Liquid Color-Shift when pressed / active */
+.liquid-glass-btn:active,
+.liquid-glass-btn.btn-pressed {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(214, 51, 108, 0.85) 30%, rgba(255, 117, 143, 0.95) 70%, rgba(169, 197, 242, 0.9) 100%) !important;
+  transform: translateY(3px) scale(0.97) !important;
+  box-shadow:
+    inset 0 3px 8px 0 rgba(214, 51, 108, 0.65),
+    inset 0 -2px 4px 0 rgba(255, 255, 255, 0.6),
+    0 4px 20px 2px rgba(214, 51, 108, 0.6),
+    0 2px 6px -1px rgba(121, 86, 83, 0.3) !important;
+}
+
+.liquid-glass-btn:active::before,
+.liquid-glass-btn.btn-pressed::before {
+  opacity: 0.5;
+}
+
+/* Shimmer Sweep Animation for Button */
+@keyframes shimmer-sweep {
+  0% {
+    transform: translateX(-160%) skewX(-25deg);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.9;
+  }
+  60% {
+    transform: translateX(280%) skewX(-25deg);
+    opacity: 0.9;
+  }
+  61%, 100% {
+    transform: translateX(280%) skewX(-25deg);
+    opacity: 0;
+  }
+}
+
+.shimmer-liquid {
+  position: absolute;
+  top: -10%;
+  left: 0;
+  width: 55%;
+  height: 120%;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.25) 25%,
+    rgba(255, 255, 255, 0.85) 50%,
+    rgba(255, 255, 255, 0.25) 75%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: shimmer-sweep 3s infinite cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  border-radius: 9999px;
+  z-index: 5;
+}
+
+/* ================= JELLY & LIGHT HOVER EFFECTS FOR ALL BUTTONS ================= */
+@keyframes jelly-bounce {
+  0% {
+    transform: scale(1, 1);
+  }
+  25% {
+    transform: scale(0.92, 1.08);
+  }
+  50% {
+    transform: scale(1.08, 0.92);
+  }
+  70% {
+    transform: scale(0.97, 1.03);
+  }
+  85% {
+    transform: scale(1.02, 0.98);
+  }
+  100% {
+    transform: scale(1, 1);
+  }
+}
+
+/* Light hover and tactile jelly effect applied to all button entities on main web */
+button,
+a.cursor-pointer,
+.btn-jelly,
+[role="button"] {
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.22s ease, filter 0.2s ease, background-color 0.2s ease;
+  will-change: transform;
+}
+
+button:not(:disabled):hover,
+a.cursor-pointer:not(:disabled):hover,
+.btn-jelly:hover,
+[role="button"]:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.03);
+}
+
+button:not(:disabled):active,
+a.cursor-pointer:not(:disabled):active,
+.btn-jelly:active,
+[role="button"]:active {
+  animation: jelly-bounce 0.46s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ================= STAMP (ĐÓNG MỘC) ANIMATIONS ================= */
+@keyframes stamp-slam {
+  0% {
+    transform: scale(2.2) translateY(-14px) rotate(-16deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(0.92) translateY(0px) rotate(-6deg);
+    opacity: 1;
+  }
+  75% {
+    transform: scale(1.08) rotate(-7deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(-6deg);
+    opacity: 1;
+  }
+}
+
+@keyframes ink-ripple {
+  0% {
+    transform: scale(0.4);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+@keyframes stamp-bob {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-3px) rotate(-4deg);
+  }
+}
+
+.animate-stamp-slam {
+  animation: stamp-slam 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.animate-ink-ripple {
+  animation: ink-ripple 0.5s ease-out forwards;
+}
+
+.animate-stamp-bob {
+  animation: stamp-bob 1.5s ease-in-out infinite;
+}
+
+/* Stamped Paw Logo Shimmer Effect */
+.stamped-paw-shimmer {
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 70%;
+  height: 100%;
+  background: linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.55) 45%,
+    rgba(255, 255, 255, 0.8) 50%,
+    rgba(255, 255, 255, 0.55) 55%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: skewX(-22deg);
+  animation: stamped-paw-sweep 3s infinite cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  border-radius: 9999px;
+}
+
+@keyframes stamped-paw-sweep {
+  0% {
+    left: -120%;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  50% {
+    left: 150%;
+    opacity: 1;
+  }
+  51%, 100% {
+    left: 150%;
+    opacity: 0;
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Mèo Mê Cá Khô",
+  "description": "Tiệm cá khô trực tuyến phong cách Nhật Bản kawaii - Chuyên bán cá khô, tiện thể nuôi vài nam chính.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
