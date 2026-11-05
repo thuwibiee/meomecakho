@@ -1,0 +1,123 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128;
+    }
+
+    match /test/{docId} {
+      allow read: if true;
+    }
+
+    match /users/{userId} {
+      allow read: if true;
+      allow create, update: if isValidId(userId)
+        && request.resource.data.keys().hasAll(['username', 'role', 'balance'])
+        && request.resource.data.username is string
+        && request.resource.data.username.size() >= 1
+        && request.resource.data.username.size() <= 100
+        && request.resource.data.role in ['user', 'admin']
+        && request.resource.data.balance is number;
+      allow delete: if isValidId(userId);
+    }
+
+    match /characters/{characterId} {
+      allow read: if true;
+      allow create, update: if isValidId(characterId)
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 1
+        && request.resource.data.name.size() <= 200;
+      allow delete: if isValidId(characterId);
+    }
+
+    match /user_characters/{itemId} {
+      allow read: if true;
+      allow create, update, delete: if isValidId(itemId);
+    }
+
+    match /orders/{orderId} {
+      allow read: if true;
+      allow create, update, delete: if isValidId(orderId);
+    }
+
+    match /wallet_transactions/{txId} {
+      allow read: if true;
+      allow create, update, delete: if isValidId(txId);
+    }
+
+    match /redeem_codes/{codeId} {
+      allow read: if true;
+      allow create, update, delete: if isValidId(codeId);
+    }
+
+    match /code_redemptions/{redemptionId} {
+      allow read: if true;
+      allow create, update, delete: if isValidId(redemptionId);
+    }
+
+    match /quests/{questId} {
+      allow read: if true;
+      allow create, update, delete: if isValidId(questId);
+    }
+
+    match /user_quests/{uqId} {
+      allow read: if true;
+      allow create, update, delete: if isValidId(uqId);
+    }
+
+    match /special_orders/{orderId} {
+      allow read: if true;
+      allow create, update, delete: if isValidId(orderId);
+    }
+
+    match /user_loyalty_cards/{cardId} {
+      allow read: if true;
+      allow create, update, delete: if isValidId(cardId);
+    }
+
+    match /loyalty_logs/{logId} {
+      allow read: if true;
+      allow create, update, delete: if isValidId(logId);
+    }
+
+    match /vouchers/{voucherId} {
+      allow read: if true;
+      allow create, update, delete: if isValidId(voucherId);
+    }
+
+    match /user_vouchers/{uvId} {
+      allow read: if true;
+      allow create, update, delete: if isValidId(uvId);
+    }
+
+    match /feedbacks/{feedbackId} {
+      allow read: if true;
+      allow create, update, delete: if isValidId(feedbackId);
+    }
+
+    match /complaints/{complaintId} {
+      allow read: if true;
+      allow create, update, delete: if isValidId(complaintId);
+    }
+
+    match /character_feedbacks/{commentId} {
+      allow read: if true;
+      allow create, update, delete: if isValidId(commentId);
+    }
+
+    match /admin_audit_logs/{logId} {
+      allow read: if true;
+      allow create, update, delete: if isValidId(logId);
+    }
+
+    match /cat_town_profiles/{userId} {
+      allow read: if true;
+      allow create, update, delete: if isValidId(userId);
+    }
+
+    match /settings/{settingId} {
+      allow read: if true;
+      allow create, update, delete: if isValidId(settingId);
+    }
+  }
+}

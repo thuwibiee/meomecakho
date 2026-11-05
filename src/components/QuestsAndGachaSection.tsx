@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { GachaConfig } from '../types.ts';
+import { firebaseApi } from '../firebase.ts';
 import { GachaMachine } from './GachaMachine.tsx';
 import { XuCaIcon } from './XuCaIcon.tsx';
 import { PawLoyaltyCard } from './PawLoyaltyCard.tsx';
@@ -27,7 +28,7 @@ export const QuestsAndGachaSection: React.FC<QuestsAndGachaSectionProps> = ({
   // Load Gacha Config
   const loadGachaConfig = async () => {
     try {
-      const res = await fetch('/api/gacha/config');
+      const res = await firebaseApi('/api/gacha/config');
       const data = await res.json();
       if (res.ok) setGachaConfig(data.config);
     } catch (err) {
@@ -79,7 +80,7 @@ export const QuestsAndGachaSection: React.FC<QuestsAndGachaSectionProps> = ({
           >
             <span className="shimmer-liquid" />
             <span className="relative z-10 flex items-center justify-center">
-              <span style={{ fontFamily: "'Cal Sans', sans-serif", fontWeight: 'normal', marginLeft: '-7px' }}>
+              <span style={{ fontFamily: "'Cal Sans', sans-serif", fontWeight: 'normal', marginLeft: '0px' }}>
                 thẻ tích xu 🐾
               </span>
             </span>
@@ -95,7 +96,7 @@ export const QuestsAndGachaSection: React.FC<QuestsAndGachaSectionProps> = ({
           >
             <span className="shimmer-liquid" />
             <span className="relative z-10 flex items-center justify-center">
-              <span style={{ fontFamily: "'Cal Sans', sans-serif", fontWeight: 'normal' }}>
+              <span style={{ fontFamily: "'Cal Sans', sans-serif", fontWeight: 'normal', fontSize: '11px' }}>
                 gacha may mắn
               </span>
             </span>

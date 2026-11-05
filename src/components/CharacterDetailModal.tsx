@@ -1,6 +1,6 @@
 import React from 'react';
 import { Character } from '../types.ts';
-import { X, ExternalLink, Check, ShoppingBag } from 'lucide-react';
+import { X, ExternalLink, Check, ShoppingBag, Edit } from 'lucide-react';
 import { XuCaIcon } from './XuCaIcon.tsx';
 
 interface CharacterDetailModalProps {
@@ -9,6 +9,8 @@ interface CharacterDetailModalProps {
   onBuy: (character: Character) => void;
   onOpenReceipt?: () => void;
   isProcessing?: boolean;
+  isAdmin?: boolean;
+  onAdminEdit?: (character: Character) => void;
 }
 
 export const CharacterDetailModal: React.FC<CharacterDetailModalProps> = ({
@@ -16,6 +18,8 @@ export const CharacterDetailModal: React.FC<CharacterDetailModalProps> = ({
   onClose,
   onBuy,
   isProcessing = false,
+  isAdmin = false,
+  onAdminEdit,
 }) => {
   if (!character) return null;
 
@@ -60,9 +64,25 @@ export const CharacterDetailModal: React.FC<CharacterDetailModalProps> = ({
               </span>
             </div>
 
-            <h2 className="text-2xl font-black text-[#795653] tracking-tight">
-              {character.name}
-            </h2>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-2xl font-black text-[#795653] tracking-tight">
+                {character.name}
+              </h2>
+              {isAdmin && onAdminEdit && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onAdminEdit(character);
+                  }}
+                  className="px-2.5 py-1 rounded-xl bg-[#D6336C] text-white hover:bg-[#b02253] text-xs font-bold flex items-center gap-1 shadow-xs cursor-pointer transition-all active:scale-95"
+                  title="Chỉnh sửa hồ sơ cá này trong Admin Dashboard"
+                >
+                  <Edit className="w-3.5 h-3.5" />
+                  <span>Sửa thông tin</span>
+                </button>
+              )}
+            </div>
 
             <div className="mt-2 text-xs font-medium text-[#795653]/80 bg-[#FFF9F4] border border-[#795653]/15 rounded-xl p-2.5">
               {character.shortBio}

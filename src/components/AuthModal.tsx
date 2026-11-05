@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Lock, User as UserIcon, AlertCircle, Info, Eye, EyeOff } from 'lucide-react';
 import { User } from '../types.ts';
+import { firebaseApi } from '../firebase.ts';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -33,7 +34,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     const endpoint = mode === 'login' ? '/api/auth/login' : '/api/auth/register';
 
     try {
-      const res = await fetch(endpoint, {
+      const res = await firebaseApi(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),

@@ -11,6 +11,8 @@ interface CharacterCardProps {
   onOpenStory?: (character: Character) => void;
   onOpenComplain?: (character: Character) => void;
   onOpenFitBach?: (character: Character) => void;
+  onAdminEdit?: (character: Character) => void;
+  isAdmin?: boolean;
   isProcessing?: boolean;
 }
 
@@ -22,6 +24,8 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({
   onOpenStory,
   onOpenComplain,
   onOpenFitBach,
+  onAdminEdit,
+  isAdmin = false,
   isProcessing = false,
 }) => {
   return (
@@ -51,6 +55,22 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({
             }
           }}
         />
+
+        {/* Admin Quick Edit Button right on card */}
+        {isAdmin && onAdminEdit && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAdminEdit(character);
+            }}
+            className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1 bg-[#F7DDA0] hover:bg-[#ffe7b3] text-[#795653] px-2.5 py-1 rounded-full text-xs font-black shadow-xs border border-[#795653]/30 cursor-pointer active:scale-95 transition-all"
+            title="Chỉnh sửa thông tin nam chính này"
+          >
+            <span>✏️</span>
+            <span>Sửa</span>
+          </button>
+        )}
 
         {/* Subtle owned badge over image if owned */}
         {character.isOwned && (

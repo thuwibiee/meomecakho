@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Character } from '../types.ts';
+import { firebaseApi } from '../firebase.ts';
 import { X, AlertTriangle, CheckCircle2, Send } from 'lucide-react';
 
 interface ComplainModalProps {
@@ -40,7 +41,7 @@ export const ComplainModal: React.FC<ComplainModalProps> = ({
     setError(null);
 
     try {
-      const res = await fetch(`/api/characters/${character.id}/complaints`, {
+      const res = await firebaseApi(`/api/characters/${character.id}/complaints`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

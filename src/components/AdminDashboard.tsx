@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Character, RedeemCode, GachaConfig, Feedback, AdminAuditLog, Complaint, CharacterFeedback, SpecialOrder, LoyaltyCardConfig, LoyaltyCompletionLog } from '../types.ts';
+import { firebaseApi } from '../firebase.ts';
 import { ShieldCheck, Plus, Edit, Users, Gift, Dices, MessageSquare, History, Check, AlertCircle, AlertTriangle, MessageSquareHeart, Trash2, CheckCircle2, FileText, ToggleLeft, ToggleRight } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -7,6 +8,7 @@ interface AdminDashboardProps {
   onClose: () => void;
   onRefreshCharacters: () => void;
   onUpdateCharacters?: (characters: Character[]) => void;
+  initialEditingCharacter?: Character | null;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
@@ -14,8 +16,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onClose,
   onRefreshCharacters,
   onUpdateCharacters,
+  initialEditingCharacter,
 }) => {
-  const [tab, setTab] = useState<'characters' | 'special_orders' | 'wallet' | 'loyalty' | 'gacha' | 'complaints' | 'fitbach' | 'feedbacks' | 'logs'>('characters');
+  const [tab, setTab] = useState<'characters' | 'special_orders' | 'wallet' | 'loyalty' | 'cat_town' | 'gacha' | 'complaints' | 'fitbach' | 'feedbacks' | 'logs'>('characters');
   const [stats, setStats] = useState<any>(null);
   const [characters, setCharacters] = useState<Character[]>([]);
   const [users, setUsers] = useState<any[]>([]);
@@ -33,11 +36,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [isSavingLoyalty, setIsSavingLoyalty] = useState(false);
   const [loyaltyFeedback, setLoyaltyFeedback] = useState<string | null>(null);
 
+  // Cat Town Admin State
+  const [catTownStats, setCatTownStats] = useState<any>(null);
+  const [catTownConfig, setCatTownConfig] = useState<any>(null);
+  const [isSavingCatTown, setIsSavingCatTown] = useState(false);
+  const [catTownFeedback, setCatTownFeedback] = useState<string | null>(null);
+
   // Character Form state
-  const [editingChar, setEditingChar] = useState<Partial<Character> | null>(null);
+  const [editingChar, setEditingChar] = useState<Partial<Character> | null>(initialEditingCharacter || null);
   const [charError, setCharError] = useState<string | null>(null);
   const [charSuccess, setCharSuccess] = useState<string | null>(null);
   const [isSavingChar, setIsSavingChar] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (initialEditingCharacter) {
+      setTab('characters');
+      setEditingChar(initialEditingCharacter);
+      setCharError(null);
+      setCharSuccess(null);
+    }
+  }, [initialEditingCharacter]);
 
   // Balance adjustment state
   const [targetUsername, setTargetUsername] = useState('');
@@ -55,7 +73,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const fetchDashboardData = async () => {
     try {
-      const res = await fetch(`/api/admin/dashboard?t=${Date.now()}`, {
+      const res = await firebaseApi(`/api/admin/dashboard?t=${Date.now()}`, {
         headers: {
           Authorization: `Bearer ${authToken}`,
           'Cache-Control': 'no-cache',
@@ -94,7 +112,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setIsSavingLoyalty(true);
     setLoyaltyFeedback(null);
     try {
-      const res = await fetch('/api/admin/loyalty-config', {
+      const res = await firebaseApi('/api/admin/loyalty-config', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -113,10 +131,54 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
+  // Fetch Cat Town stats & config
+  const fetchCatTownData = async () => {
+    try {
+      const res = await firebaseApi('/api/admin/cat-town/stats', {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setCatTownStats(data);
+        setCatTownConfig(data.config);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Save Cat Town Config
+  const handleSaveCatTownConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!catTownConfig) return;
+    setIsSavingCatTown(true);
+    setCatTownFeedback(null);
+
+    try {
+      const res = await firebaseApi('/api/admin/cat-town/config', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify(catTownConfig),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Lỗi khi lưu cấu hình');
+      setCatTownFeedback('✓ Đã cập nhật cấu hình Thị Trấn Cá Mèo thành công!');
+      fetchCatTownData();
+    } catch (err: any) {
+      setCatTownFeedback(`Lỗi: ${err.message}`);
+    } finally {
+      setIsSavingCatTown(false);
+    }
+  };
+
   // Update Special Order Status
   const handleUpdateSpecialOrderStatus = async (orderId: string, status: string) => {
     try {
-      const res = await fetch(`/api/admin/special-orders/${orderId}/status`, {
+      const res = await firebaseApi(`/api/admin/special-orders/${orderId}/status`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -175,7 +237,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setIsSavingChar(true);
 
     try {
-      const res = await fetch('/api/admin/characters', {
+      const res = await firebaseApi('/api/admin/characters', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -188,6 +250,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         setCharSuccess('✓ Đã lưu thông tin nhân vật thành công!');
         if (data.characters) {
           setCharacters(data.characters);
+          try {
+            localStorage.setItem('meome_characters_cache', JSON.stringify(data.characters));
+          } catch (e) {}
           if (onUpdateCharacters) {
             onUpdateCharacters(data.characters);
           }
@@ -216,7 +281,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     if (!targetUsername || !adjustAmount) return;
 
     try {
-      const res = await fetch('/api/admin/users/adjust-balance', {
+      const res = await firebaseApi('/api/admin/users/adjust-balance', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -248,7 +313,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     if (!newCode || !newReward) return;
 
     try {
-      const res = await fetch('/api/admin/redeem-codes', {
+      const res = await firebaseApi('/api/admin/redeem-codes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -273,7 +338,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const handleToggleComplaintStatus = async (complaintId: string, currentStatus: 'pending' | 'resolved') => {
     const nextStatus = currentStatus === 'pending' ? 'resolved' : 'pending';
     try {
-      const res = await fetch(`/api/admin/complaints/${complaintId}/status`, {
+      const res = await firebaseApi(`/api/admin/complaints/${complaintId}/status`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -293,7 +358,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const handleDeleteComment = async (commentId: string) => {
     if (!confirm('Quý khách có chắc muốn xóa bình luận này không?')) return;
     try {
-      const res = await fetch(`/api/admin/character-comments/${commentId}`, {
+      const res = await firebaseApi(`/api/admin/character-comments/${commentId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${authToken}`,
@@ -416,6 +481,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           }`}
         >
           <span>🐾 Dấu Chân Khách Quen</span>
+        </button>
+        <button
+          onClick={() => {
+            setTab('cat_town');
+            fetchCatTownData();
+          }}
+          className={`py-2 px-4 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer ${
+            tab === 'cat_town' ? 'bg-[#F6A6B8] text-[#795653] shadow-xs' : 'text-[#795653]/70 hover:text-[#795653]'
+          }`}
+        >
+          <span>🏘️ Thị Trấn Cá Mèo</span>
         </button>
         <button
           onClick={() => setTab('feedbacks')}
@@ -1181,6 +1257,244 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Tab: Quản Lý Thị Trấn Cá Mèo */}
+      {tab === 'cat_town' && (
+        <div className="space-y-6">
+          {/* Header & KPI Summary */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <div className="p-3.5 rounded-2xl bg-white border border-[#795653]/20 shadow-2xs">
+              <span className="text-[10px] font-bold text-[#795653]/60 uppercase">Tổng Cư Dân</span>
+              <div className="text-xl font-black text-[#D6336C] mt-1 tabular-nums">
+                {catTownStats?.totalResidents || 0}
+              </div>
+            </div>
+            <div className="p-3.5 rounded-2xl bg-white border border-[#795653]/20 shadow-2xs">
+              <span className="text-[10px] font-bold text-[#795653]/60 uppercase">Cá Đã Câu</span>
+              <div className="text-xl font-black text-[#1E3A8A] mt-1 tabular-nums">
+                {catTownStats?.totalFishCaught || 0}
+              </div>
+            </div>
+            <div className="p-3.5 rounded-2xl bg-white border border-[#795653]/20 shadow-2xs">
+              <span className="text-[10px] font-bold text-[#795653]/60 uppercase">Mẻ Cá Đã Nướng</span>
+              <div className="text-xl font-black text-[#B07D62] mt-1 tabular-nums">
+                {catTownStats?.totalFishGrilled || 0}
+              </div>
+            </div>
+            <div className="p-3.5 rounded-2xl bg-white border border-[#795653]/20 shadow-2xs">
+              <span className="text-[10px] font-bold text-[#795653]/60 uppercase">Quẻ Bói Đã Rút</span>
+              <div className="text-xl font-black text-[#7B2CBF] mt-1 tabular-nums">
+                {catTownStats?.totalFortunesTold || 0}
+              </div>
+            </div>
+            <div className="p-3.5 rounded-2xl bg-white border border-[#795653]/20 shadow-2xs col-span-2 sm:col-span-1">
+              <span className="text-[10px] font-bold text-[#795653]/60 uppercase">Nội Thất Đã Bán</span>
+              <div className="text-xl font-black text-emerald-700 mt-1 tabular-nums">
+                {catTownStats?.totalFurnitureBought || 0}
+              </div>
+            </div>
+          </div>
+
+          {/* Form Cấu Hình Mini-game & Thưởng Xu */}
+          {catTownConfig && (
+            <div className="p-5 sm:p-6 rounded-3xl bg-white border border-[#795653]/20 shadow-xs space-y-4">
+              <div className="flex items-center justify-between border-b border-[#795653]/10 pb-3">
+                <div>
+                  <h3 className="text-base font-black text-[#795653] flex items-center gap-1.5">
+                    <span>⚙️</span>
+                    <span>Cấu Hình Mini-Game & Phần Thưởng Xu Cá</span>
+                  </h3>
+                  <p className="text-xs text-[#795653]/70">
+                    Tùy chỉnh số lượt chơi và mức Xu Cá cộng trực tiếp vào ví người chơi.
+                  </p>
+                </div>
+              </div>
+
+              {catTownFeedback && (
+                <div className="p-3 rounded-2xl bg-[#FFE5EC] border-2 border-[#FF8FAB] text-[#795653] text-xs font-bold">
+                  {catTownFeedback}
+                </div>
+              )}
+
+              <form onSubmit={handleSaveCatTownConfig} className="space-y-4">
+                {/* Switch Bật/Tắt */}
+                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-[#FFF9F4] border border-[#795653]/15">
+                  <div>
+                    <label className="text-xs font-black text-[#795653] block">
+                      Trạng thái Thị Trấn Cá Mèo
+                    </label>
+                    <span className="text-[11px] text-[#795653]/70">
+                      Khi tắt, người dùng sẽ thấy thông báo bảo trì khu vực.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCatTownConfig({
+                        ...catTownConfig,
+                        isEnabled: !catTownConfig.isEnabled,
+                      })
+                    }
+                    className="cursor-pointer"
+                  >
+                    {catTownConfig.isEnabled ? (
+                      <ToggleRight className="w-8 h-8 text-emerald-600" />
+                    ) : (
+                      <ToggleLeft className="w-8 h-8 text-neutral-400" />
+                    )}
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Daily limits */}
+                  <div>
+                    <label className="text-xs font-bold text-[#795653] block mb-1">
+                      Giới hạn câu cá / ngày (lượt)
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={50}
+                      value={catTownConfig.dailyFishingLimit}
+                      onChange={(e) =>
+                        setCatTownConfig({
+                          ...catTownConfig,
+                          dailyFishingLimit: Number(e.target.value),
+                        })
+                      }
+                      className="w-full px-3.5 py-2 rounded-xl border border-[#795653]/30 text-xs font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-[#795653] block mb-1">
+                      Giới hạn nướng cá / ngày (mẻ)
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={50}
+                      value={catTownConfig.dailyGrillingLimit}
+                      onChange={(e) =>
+                        setCatTownConfig({
+                          ...catTownConfig,
+                          dailyGrillingLimit: Number(e.target.value),
+                        })
+                      }
+                      className="w-full px-3.5 py-2 rounded-xl border border-[#795653]/30 text-xs font-bold"
+                    />
+                  </div>
+
+                  {/* Rewards */}
+                  <div>
+                    <label className="text-xs font-bold text-[#795653] block mb-1">
+                      Xu thưởng nướng cá chín vàng (Hoàn hảo)
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={catTownConfig.grillingRewardPerfect}
+                      onChange={(e) =>
+                        setCatTownConfig({
+                          ...catTownConfig,
+                          grillingRewardPerfect: Number(e.target.value),
+                        })
+                      }
+                      className="w-full px-3.5 py-2 rounded-xl border border-[#795653]/30 text-xs font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-[#795653] block mb-1">
+                      Xu thưởng xem bói may mắn đầu ngày
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={catTownConfig.fortuneRewardCoins}
+                      onChange={(e) =>
+                        setCatTownConfig({
+                          ...catTownConfig,
+                          fortuneRewardCoins: Number(e.target.value),
+                        })
+                      }
+                      className="w-full px-3.5 py-2 rounded-xl border border-[#795653]/30 text-xs font-bold"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSavingCatTown}
+                  className="py-2.5 px-6 rounded-xl bg-[#F6A6B8] hover:bg-[#f391a6] text-[#795653] font-black text-xs uppercase tracking-wider shadow-xs cursor-pointer active:scale-95 transition-all disabled:opacity-50"
+                >
+                  {isSavingCatTown ? 'Đang lưu...' : 'Lưu Cấu Hình Thị Trấn'}
+                </button>
+              </form>
+            </div>
+          )}
+
+          {/* Catalog: 8 Loài Cá Quý */}
+          {catTownConfig?.fishCatalog && (
+            <div className="p-5 sm:p-6 rounded-3xl bg-white border border-[#795653]/20 shadow-xs space-y-3">
+              <h3 className="text-base font-black text-[#795653] flex items-center gap-1.5">
+                <span>🐟</span>
+                <span>Danh Mục 8 Giống Cá Hồ Bong Bóng</span>
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                {catTownConfig.fishCatalog.map((fish: any) => (
+                  <div
+                    key={fish.id}
+                    className="p-3 rounded-2xl bg-[#FFF9F4] border border-[#795653]/15 text-xs space-y-1"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-black text-[#795653]">{fish.name}</span>
+                      <span className="px-1.5 py-0.5 rounded-full bg-white text-[9px] font-bold text-[#D6336C]">
+                        +{fish.rewardCoins} Xu
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-[#526C91] font-semibold uppercase">
+                      Độ hiếm: {fish.rarity}
+                    </div>
+                    <p className="text-[11px] text-[#795653]/70 line-clamp-2">
+                      {fish.description}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Catalog: 12 Đồ Nội Thất Tiệm Thị Trấn */}
+          {catTownConfig?.furnitureCatalog && (
+            <div className="p-5 sm:p-6 rounded-3xl bg-white border border-[#795653]/20 shadow-xs space-y-3">
+              <h3 className="text-base font-black text-[#795653] flex items-center gap-1.5">
+                <span>🪑</span>
+                <span>Danh Mục 12 Vật Phẩm Nội Thất Thị Trấn</span>
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+                {catTownConfig.furnitureCatalog.map((item: any) => (
+                  <div
+                    key={item.id}
+                    className="p-3 rounded-2xl bg-[#FFF9F4] border border-[#795653]/15 text-xs space-y-1"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-black text-[#795653] truncate">{item.name}</span>
+                      <span className="font-black text-[#D6336C]">{item.price} Xu</span>
+                    </div>
+                    <div className="text-[10px] text-[#795653]/60 uppercase">
+                      Loại: {item.category}
+                    </div>
+                    <p className="text-[11px] text-[#795653]/70 line-clamp-2">
+                      {item.description}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

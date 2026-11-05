@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { WalletTransaction, Voucher } from '../types.ts';
+import { firebaseApi } from '../firebase.ts';
 import { Gift, History, Ticket, Sparkles, CheckCircle2, AlertCircle, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 import { XuCaIcon } from './XuCaIcon.tsx';
 
@@ -35,7 +36,7 @@ export const WalletSection: React.FC<WalletSectionProps> = ({
   const loadVouchers = async () => {
     if (!authToken) return;
     try {
-      const res = await fetch('/api/vouchers', {
+      const res = await firebaseApi('/api/vouchers', {
         headers: { Authorization: `Bearer ${authToken}` },
       });
       const data = await res.json();
@@ -56,7 +57,7 @@ export const WalletSection: React.FC<WalletSectionProps> = ({
     setVoucherFeedback(null);
 
     try {
-      const res = await fetch(`/api/vouchers/${voucherId}/claim`, {
+      const res = await firebaseApi(`/api/vouchers/${voucherId}/claim`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${authToken}`,
@@ -85,7 +86,7 @@ export const WalletSection: React.FC<WalletSectionProps> = ({
     setFeedback(null);
 
     try {
-      const res = await fetch('/api/wallet/redeem', {
+      const res = await firebaseApi('/api/wallet/redeem', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -113,7 +114,7 @@ export const WalletSection: React.FC<WalletSectionProps> = ({
     if (!authToken) return;
     setIsLoadingHistory(true);
     try {
-      const res = await fetch('/api/wallet/transactions', {
+      const res = await firebaseApi('/api/wallet/transactions', {
         headers: { Authorization: `Bearer ${authToken}` },
       });
       const data = await res.json();

@@ -5,12 +5,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { User, Character, UserCharacterOwnership, OrderReceipt } from './types.ts';
+import { firebaseApi, subscribeToCharacters } from './firebase.ts';
 import { LandingPage } from './components/LandingPage.tsx';
 import { ShopSection } from './components/ShopSection.tsx';
 import { InventorySection } from './components/InventorySection.tsx';
 import { WalletSection } from './components/WalletSection.tsx';
 import { QuestsAndGachaSection } from './components/QuestsAndGachaSection.tsx';
 import { SpecialOrderSection } from './components/SpecialOrderSection.tsx';
+import { CatTownSection } from './components/cat-town/CatTownSection.tsx';
 import { AdminDashboard } from './components/AdminDashboard.tsx';
 import { ReceiptModal } from './components/ReceiptModal.tsx';
 import { CharacterDetailModal } from './components/CharacterDetailModal.tsx';
@@ -36,9 +38,23 @@ import {
 
 export default function App() {
   // Navigation & View state
-  const [currentView, setCurrentView] = useState<'landing' | 'main'>('landing');
-  const [activeTab, setActiveTab] = useState<'shop' | 'inventory' | 'wallet' | 'quests' | 'special_order'>('shop');
+  const [currentView, setCurrentView] = useState<'landing' | 'main'>(() => {
+    try {
+      const saved = sessionStorage.getItem('meome_current_view');
+      if (saved === 'main' || saved === 'landing') return saved;
+    } catch {}
+    return 'landing';
+  });
+  const [activeTab, setActiveTab] = useState<'shop' | 'inventory' | 'wallet' | 'quests' | 'special_order' | 'cat_town'>('shop');
   const [showAdmin, setShowAdmin] = useState<boolean>(false);
+  const [adminEditingCharacter, setAdminEditingCharacter] = useState<Character | null>(null);
+
+  // Sync currentView to sessionStorage
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('meome_current_view', currentView);
+    } catch {}
+  }, [currentView]);
 
   // Authentication state
   const [user, setUser] = useState<User | null>(null);
@@ -46,8 +62,17 @@ export default function App() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
 
-  // Core Data state
-  const [characters, setCharacters] = useState<(Character & { isOwned?: boolean })[]>([]);
+  // Core Data state with initial localStorage cache for instant zero-loss render
+  const [characters, setCharacters] = useState<(Character & { isOwned?: boolean })[]>(() => {
+    try {
+      const cached = localStorage.getItem('meome_characters_cache');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return [];
+  });
   const [inventoryItems, setInventoryItems] = useState<UserCharacterOwnership[]>([]);
   const [activeReceipt, setActiveReceipt] = useState<OrderReceipt | null>(null);
   const [inspectingCharacter, setInspectingCharacter] = useState<Character | null>(null);
@@ -67,35 +92,20 @@ export default function App() {
   // Mobile menu
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // Cat Town Train Confirmation Modal
+  const [showCatTownConfirmModal, setShowCatTownConfirmModal] = useState(false);
+
   // Restore persistent or session token on mount (Auto-Login)
-  // LƯU Ý: KHÔNG TỰ ĐỘNG LOG IN VÀO TÀI KHOẢN ADMIN
   useEffect(() => {
     const savedToken = localStorage.getItem('meome_token') || sessionStorage.getItem('meome_token');
     if (!savedToken) return;
 
-    // Nếu token thuộc về tài khoản admin, lập tức dọn dẹp và không auto-login
-    if (savedToken.startsWith('usr_admin')) {
-      localStorage.removeItem('meome_token');
-      sessionStorage.removeItem('meome_token');
-      setAuthToken(null);
-      setUser(null);
-      return;
-    }
-
-    fetch('/api/auth/me', {
+    firebaseApi('/api/auth/me', {
       headers: { Authorization: `Bearer ${savedToken}` },
     })
       .then((res) => res.json())
       .then((data) => {
         if (data.user) {
-          // TUYỆT ĐỐI KHÔNG TỰ ĐỘNG ĐĂNG NHẬP VÀO TÀI KHOẢN ADMIN
-          if (data.user.role === 'admin' || data.user.id === 'usr_admin') {
-            localStorage.removeItem('meome_token');
-            sessionStorage.removeItem('meome_token');
-            setAuthToken(null);
-            setUser(null);
-            return;
-          }
           setAuthToken(savedToken);
           setUser(data.user);
         } else {
@@ -106,18 +116,42 @@ export default function App() {
         }
       })
       .catch(() => {
-        // In case of transient network issue, keep token so regular user is not logged out unnecessarily
+        // In case of transient network issue, keep token so user is not logged out unnecessarily
       });
   }, []);
 
-  // Handle immediate characters update from Admin actions
+  // Real-time Firestore listener for Characters
+  useEffect(() => {
+    const unsubscribe = subscribeToCharacters((firestoreChars) => {
+      setCharacters((prev) => {
+        const ownedSet = new Set(prev.filter((p) => p.isOwned).map((p) => p.id));
+        const merged = firestoreChars
+          .filter((c) => c.isAvailable !== false)
+          .map((c) => ({
+            ...c,
+            isOwned: ownedSet.has(c.id),
+          }));
+        try {
+          localStorage.setItem('meome_characters_cache', JSON.stringify(merged));
+        } catch {}
+        return merged;
+      });
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Handle immediate characters update from Admin actions & sync to cache
   const handleUpdateCharacters = (newChars: Character[]) => {
     setCharacters((prev) => {
       const ownedSet = new Set(prev.filter((p) => p.isOwned).map((p) => p.id));
-      return newChars.map((c) => ({
+      const merged = newChars.map((c) => ({
         ...c,
         isOwned: ownedSet.has(c.id),
       }));
+      try {
+        localStorage.setItem('meome_characters_cache', JSON.stringify(merged));
+      } catch {}
+      return merged;
     });
   };
 
@@ -129,10 +163,20 @@ export default function App() {
         'Pragma': 'no-cache',
       };
       if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
-      const res = await fetch(`/api/characters?t=${Date.now()}`, { headers });
+      const res = await firebaseApi(`/api/characters?t=${Date.now()}`, { headers });
       const data = await res.json();
-      if (res.ok) {
-        setCharacters(data.characters || []);
+      if (res.ok && Array.isArray(data.characters)) {
+        setCharacters((prev) => {
+          const ownedSet = new Set(prev.filter((p) => p.isOwned).map((p) => p.id));
+          const updated = data.characters.map((c: Character) => ({
+            ...c,
+            isOwned: ownedSet.has(c.id) || Boolean((c as any).isOwned),
+          }));
+          try {
+            localStorage.setItem('meome_characters_cache', JSON.stringify(updated));
+          } catch {}
+          return updated;
+        });
       }
     } catch (err) {
       console.error('Error fetching characters:', err);
@@ -146,7 +190,7 @@ export default function App() {
       return;
     }
     try {
-      const res = await fetch('/api/inventory', {
+      const res = await firebaseApi('/api/inventory', {
         headers: { Authorization: `Bearer ${authToken}` },
       });
       const data = await res.json();
@@ -163,21 +207,13 @@ export default function App() {
     fetchInventory();
   }, [authToken]);
 
-  // Auth Success handler with Remember Me support (KHÔNG áp dụng cho Admin)
+  // Auth Success handler with Remember Me support
   const handleAuthSuccess = (loggedUser: User, token: string, rememberMe: boolean = true) => {
     setUser(loggedUser);
     setAuthToken(token);
 
-    // TUYỆT ĐỐI KHÔNG TỰ ĐỘNG ĐĂNG NHẬP VÀO TÀI KHOẢN ADMIN
-    // Token admin chỉ lưu trong bộ nhớ state của phiên làm việc hiện tại, không lưu vào storage
-    if (loggedUser.role === 'admin' || loggedUser.id === 'usr_admin') {
-      localStorage.removeItem('meome_token');
-      sessionStorage.removeItem('meome_token');
-      return;
-    }
-
     if (rememberMe) {
-      // Persistent storage across browser sessions / restarts cho người dùng thông thường
+      // Persistent storage across browser sessions / restarts
       localStorage.setItem('meome_token', token);
       sessionStorage.removeItem('meome_token');
     } else {
@@ -190,7 +226,7 @@ export default function App() {
   // Logout handler - clears both local and session storage, and revokes server session
   const handleLogout = () => {
     if (authToken) {
-      fetch('/api/auth/logout', {
+      firebaseApi('/api/auth/logout', {
         method: 'POST',
         headers: { Authorization: `Bearer ${authToken}` },
       }).catch(() => {});
@@ -235,7 +271,7 @@ export default function App() {
     if (!confirmBuyChar || !authToken || isProcessingBuy) return;
     setIsProcessingBuy(true);
     try {
-      const res = await fetch('/api/shop/buy', {
+      const res = await firebaseApi('/api/shop/buy', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -266,7 +302,7 @@ export default function App() {
     if (!feedbackContent.trim() || !authToken) return;
 
     try {
-      const res = await fetch('/api/feedback', {
+      const res = await firebaseApi('/api/feedback', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -308,6 +344,50 @@ export default function App() {
           initialMode={authMode}
         />
       </>
+    );
+  }
+
+  // Render Full-Screen Cat Town Game Mode (Hiding Header and Sidebar)
+  if (activeTab === 'cat_town') {
+    return (
+      <div
+        className="relative min-h-screen w-full bg-[#f8cad8] text-[#795653] flex flex-col selection:bg-[#FF8FAB]/30"
+        style={{ imageRendering: 'pixelated' }}
+      >
+        {/* Background matching main web design */}
+        <div className="fixed inset-0 pointer-events-none overflow-hidden select-none z-0">
+          <img
+            src="/assets/aistudio/image_acaed8f2.png"
+            alt="Mèo Mê Cá Khô Background"
+            className="w-full h-full object-cover object-top opacity-45"
+            style={{ imageRendering: 'pixelated' }}
+          />
+          <div className="absolute inset-0 bg-[#f7a8c4]/20 mix-blend-multiply pointer-events-none" />
+        </div>
+
+        <main className="relative z-10 w-full min-h-screen flex flex-col">
+          <CatTownSection
+            authToken={authToken}
+            username={user?.username || 'Khách Mèo'}
+            userBalance={user?.balance || 0}
+            onBalanceUpdated={(newBal) => {
+              if (user) setUser({ ...user, balance: newBal });
+            }}
+            onOpenAuth={() => {
+              setAuthMode('login');
+              setIsAuthModalOpen(true);
+            }}
+            onExitToShop={() => setActiveTab('shop')}
+          />
+        </main>
+
+        <AuthModal
+          isOpen={isAuthModalOpen}
+          onClose={() => setIsAuthModalOpen(false)}
+          onSuccess={handleAuthSuccess}
+          initialMode={authMode}
+        />
+      </div>
     );
   }
 
@@ -616,6 +696,36 @@ export default function App() {
                   </span>
                 </div>
               </button>
+
+              {/* 6. THỊ TRẤN CÁ MÈO */}
+              <button
+                onClick={() => {
+                  if (!user) {
+                    setIsAuthModalOpen(true);
+                    return;
+                  }
+                  setShowCatTownConfirmModal(true);
+                }}
+                className={`w-full flex items-center justify-between p-3 rounded-2xl font-black text-sm transition-all duration-200 cursor-pointer overflow-hidden relative ${
+                  !showAdmin && (activeTab as string) === 'cat_town'
+                    ? 'liquid-glass-btn text-[#D6336C] border-2 border-white/90 shadow-md scale-[1.02]'
+                    : 'bg-white/70 hover:bg-white text-[#795653]/85 border border-white/80 hover:border-[#F6A6B8]/50 shadow-2xs hover:shadow-xs hover:-translate-y-0.5'
+                }`}
+              >
+                {!showAdmin && (activeTab as string) === 'cat_town' && <span className="shimmer-liquid" />}
+                <div className="relative z-10 flex items-center gap-2.5">
+                  <span className="text-lg">🏘️</span>
+                  <span
+                    className="uppercase font-bold"
+                    style={{ fontFamily: "'Cal Sans', sans-serif", fontWeight: 'bold', color: '#E13F7C' }}
+                  >
+                    6. THỊ TRẤN CÁ MÈO
+                  </span>
+                </div>
+                <span className="relative z-10 text-[10px] px-2 py-0.5 rounded-full bg-[#FF8FAB]/25 text-[#D6336C] font-black uppercase">
+                  Mới 🐾
+                </span>
+              </button>
             </nav>
 
             {/* Shop Slogan & Community Box */}
@@ -646,12 +756,16 @@ export default function App() {
           {showAdmin && user?.role === 'admin' ? (
             <AdminDashboard
               authToken={authToken!}
-              onClose={() => setShowAdmin(false)}
+              onClose={() => {
+                setShowAdmin(false);
+                setAdminEditingCharacter(null);
+              }}
               onRefreshCharacters={() => {
                 fetchCharacters();
                 fetchInventory();
               }}
               onUpdateCharacters={handleUpdateCharacters}
+              initialEditingCharacter={adminEditingCharacter}
             />
           ) : activeTab === 'shop' ? (
             <ShopSection
@@ -668,6 +782,11 @@ export default function App() {
               }}
               isLoggedIn={!!user}
               userBalance={user?.balance || 0}
+              isAdmin={user?.role === 'admin'}
+              onAdminEdit={(char) => {
+                setAdminEditingCharacter(char);
+                setShowAdmin(true);
+              }}
             />
           ) : activeTab === 'inventory' ? (
             <InventorySection
@@ -799,6 +918,23 @@ export default function App() {
           <span className="text-base">📝</span>
           <span>ĐẶT CÁ</span>
         </button>
+
+        <button
+          onClick={() => {
+            if (!user) {
+              setIsAuthModalOpen(true);
+              return;
+            }
+            setShowCatTownConfirmModal(true);
+          }}
+          className={`flex flex-col items-center py-1 px-1.5 rounded-xl text-[10px] uppercase font-bold transition-colors ${
+            !showAdmin && (activeTab as string) === 'cat_town' ? 'text-[#D6336C]' : 'text-[#795653]/70'
+          }`}
+          style={{ fontFamily: "'Cal Sans', sans-serif", fontWeight: 'bold' }}
+        >
+          <span className="text-base">🏘️</span>
+          <span>THỊ TRẤN</span>
+        </button>
       </div>
 
       {/* ================= MODALS ================= */}
@@ -815,6 +951,12 @@ export default function App() {
         onBuy={(char) => {
           setInspectingCharacter(null);
           handleRequestBuy(char);
+        }}
+        isAdmin={user?.role === 'admin'}
+        onAdminEdit={(char) => {
+          setInspectingCharacter(null);
+          setAdminEditingCharacter(char);
+          setShowAdmin(true);
         }}
       />
 
@@ -920,6 +1062,65 @@ export default function App() {
                 </button>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* 4. Cat Town Train Departure Confirmation Modal */}
+      {showCatTownConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#795653]/45 backdrop-blur-xs animate-in fade-in duration-200">
+          <div
+            className="relative w-full max-w-sm sm:max-w-md bg-[#FFF9F4] rounded-3xl border-2 border-[#FFB3C6] p-6 sm:p-7 text-center animate-in zoom-in-95 duration-200"
+            style={{
+              boxShadow: '0 20px 45px -15px rgba(225, 63, 124, 0.3), 0 0 0 1px #FFB3C6',
+            }}
+          >
+            {/* Cute Train Stamp */}
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[#FFE5EC] border-2 border-[#FFB3C6] flex items-center justify-center text-3xl shadow-xs">
+              🚂
+            </div>
+
+            {/* Title */}
+            <h3
+              className="text-lg sm:text-xl font-black text-[#D6336C] tracking-wide mb-3"
+              style={{ fontFamily: "'Cal Sans', sans-serif" }}
+            >
+              LÊN TÀU ĐẾN THỊ TRẤN CÁ MÈO?
+            </h3>
+
+            {/* Message */}
+            <p
+              className="text-xs sm:text-sm font-semibold text-[#795653] leading-relaxed mb-6 px-1"
+              style={{ fontFamily: "'Cal Sans', sans-serif" }}
+            >
+              Bà có chắc chắn muốn rời trạm để bước vào Thị Trấn Cá Mèo không? Game sẽ mở ra một thế giới hoàn toàn mới đó nha! 🚂✨
+            </p>
+
+            {/* Buttons */}
+            <div className="flex items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => setShowCatTownConfirmModal(false)}
+                className="flex-1 py-3 px-4 rounded-2xl bg-white hover:bg-[#FFE5EC] border-2 border-[#795653]/20 text-[#795653] font-black text-xs sm:text-sm transition-all active:scale-95 cursor-pointer shadow-2xs"
+                style={{ fontFamily: "'Cal Sans', sans-serif" }}
+              >
+                Hủy
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCatTownConfirmModal(false);
+                  setShowAdmin(false);
+                  setActiveTab('cat_town');
+                }}
+                className="flex-1 py-3 px-4 rounded-2xl bg-[#FF8FAB] hover:bg-[#E13F7C] text-white font-black text-xs sm:text-sm border-2 border-[#FF8FAB] shadow-md transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
+                style={{ fontFamily: "'Cal Sans', sans-serif" }}
+              >
+                <span>Lên Tàu luôn!</span>
+                <span>🐾</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

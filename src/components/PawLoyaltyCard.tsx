@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { LoyaltyStatusResponse } from '../types.ts';
+import { firebaseApi } from '../firebase.ts';
 import { Sparkles, Check, X } from 'lucide-react';
 import { XuCaIcon } from './XuCaIcon.tsx';
 
@@ -84,7 +85,7 @@ export const PawLoyaltyCard: React.FC<PawLoyaltyCardProps> = ({
     if (!authToken) return;
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/loyalty-card?t=${Date.now()}`, {
+      const res = await firebaseApi(`/api/loyalty-card?t=${Date.now()}`, {
         headers: {
           Authorization: `Bearer ${authToken}`,
           'Cache-Control': 'no-cache',
@@ -119,7 +120,7 @@ export const PawLoyaltyCard: React.FC<PawLoyaltyCardProps> = ({
     playStampAudio();
 
     try {
-      const res = await fetch('/api/loyalty-card/checkin', {
+      const res = await firebaseApi('/api/loyalty-card/checkin', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -252,12 +253,20 @@ export const PawLoyaltyCard: React.FC<PawLoyaltyCardProps> = ({
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-[#FF8FAB]/25 pb-3 mb-3 bg-white/70 backdrop-blur-xs px-3.5 py-2 rounded-2xl shadow-2xs border border-white/80">
           {/* Title & Subtitle */}
           <div>
-            <div className="flex items-center gap-1.5">
+            <div
+              className="flex items-center gap-1.5"
+              style={{
+                fontFamily: "'Cal Sans', sans-serif",
+                marginLeft: '-13px',
+                fontSize: '22px',
+              }}
+            >
               <span className="text-[#FF8FAB] text-xs">୨ৎ</span>
               <h2
-                className="text-lg sm:text-2xl font-black tracking-wide drop-shadow-2xs"
+                className="font-black tracking-wide drop-shadow-2xs"
                 style={{
-                  fontFamily: "'Calistoga', serif",
+                  fontFamily: "'Cal Sans', sans-serif",
+                  fontSize: '30px',
                   color: '#D81C63',
                   letterSpacing: '0.4px',
                 }}
@@ -267,8 +276,14 @@ export const PawLoyaltyCard: React.FC<PawLoyaltyCardProps> = ({
               <span className="text-[#FF8FAB] text-xs">୨ৎ</span>
             </div>
             <p
-              className="text-[10px] sm:text-[11px] uppercase font-extrabold tracking-widest"
-              style={{ fontFamily: "'Cal Sans', sans-serif", color: '#f075ae' }}
+              className="uppercase font-extrabold tracking-widest"
+              style={{
+                fontFamily: "'Cal Sans', sans-serif",
+                color: '#f075ae',
+                marginTop: '3px',
+                marginLeft: '13px',
+                fontSize: '12px',
+              }}
             >
               MÈO MÊ CÁ KHÔ · PAW LOYALTY CARD
             </p>

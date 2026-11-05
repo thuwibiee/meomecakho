@@ -23,7 +23,10 @@ import {
   LoyaltyCardConfig,
   UserLoyaltyCard,
   LoyaltyCompletionLog,
+  CatTownConfig,
+  CatTownUserProfile,
 } from './src/types.ts';
+import { setupCatTownRoutes, getDefaultCatTownConfig } from './server/catTown.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -57,6 +60,8 @@ interface DatabaseSchema {
   loyalty_config?: LoyaltyCardConfig;
   user_loyalty_cards?: UserLoyaltyCard[];
   loyalty_completion_logs?: LoyaltyCompletionLog[];
+  cat_town_config?: CatTownConfig;
+  cat_town_profiles?: CatTownUserProfile[];
   orderCounter: number;
   requestCounter?: number;
   sessions?: { token: string; userId: string; createdAt: string }[];
@@ -322,6 +327,8 @@ function getInitialDatabase(): DatabaseSchema {
 // In-memory DB with safe atomic sync
 let db: DatabaseSchema;
 
+const CHARACTERS_FILE = path.join(DATA_DIR, 'characters.json');
+
 function loadDatabase(): DatabaseSchema {
   try {
     if (!fs.existsSync(DATA_DIR)) {
@@ -331,7 +338,6 @@ function loadDatabase(): DatabaseSchema {
       const content = fs.readFileSync(DB_FILE, 'utf-8');
       const parsed = JSON.parse(content);
       if (parsed.sessions && Array.isArray(parsed.sessions)) {
-        parsed.sessions = parsed.sessions.filter((s: any) => s.userId !== 'usr_admin');
         for (const s of parsed.sessions) {
           activeSessions.set(s.token, s.userId);
         }
@@ -343,6 +349,19 @@ function loadDatabase(): DatabaseSchema {
       parsed.loyalty_config = parsed.loyalty_config || { isEnabled: true, rewardCoins: 50 };
       parsed.user_loyalty_cards = parsed.user_loyalty_cards || [];
       parsed.loyalty_completion_logs = parsed.loyalty_completion_logs || [];
+
+      // Restore characters from dedicated characters.json if present
+      if (fs.existsSync(CHARACTERS_FILE)) {
+        try {
+          const charsContent = fs.readFileSync(CHARACTERS_FILE, 'utf-8');
+          const backupChars = JSON.parse(charsContent);
+          if (Array.isArray(backupChars) && backupChars.length > 0) {
+            parsed.characters = backupChars;
+          }
+        } catch (e) {
+          console.error('Error reading characters backup file:', e);
+        }
+      }
 
       let hasChanges = false;
 
@@ -446,6 +465,15 @@ function loadDatabase(): DatabaseSchema {
         }
       }
 
+      if (!parsed.cat_town_config) {
+        parsed.cat_town_config = getDefaultCatTownConfig();
+        hasChanges = true;
+      }
+      if (!parsed.cat_town_profiles) {
+        parsed.cat_town_profiles = [];
+        hasChanges = true;
+      }
+
       if (hasChanges) {
         saveDatabase(parsed);
       }
@@ -467,6 +495,13 @@ function saveDatabase(dataToSave: DatabaseSchema = db): void {
     const tmpPath = `${DB_FILE}.tmp.${Date.now()}`;
     fs.writeFileSync(tmpPath, JSON.stringify(dataToSave, null, 2), 'utf-8');
     fs.renameSync(tmpPath, DB_FILE);
+
+    // Dedicated characters.json atomic backup
+    if (dataToSave.characters && Array.isArray(dataToSave.characters)) {
+      const tmpCharsPath = `${CHARACTERS_FILE}.tmp.${Date.now()}`;
+      fs.writeFileSync(tmpCharsPath, JSON.stringify(dataToSave.characters, null, 2), 'utf-8');
+      fs.renameSync(tmpCharsPath, CHARACTERS_FILE);
+    }
   } catch (err) {
     console.error('Error saving db file:', err);
   }
@@ -638,12 +673,9 @@ app.post('/api/auth/login', (req, res) => {
 
   const token = generateToken(user.id);
   activeSessions.set(token, user.id);
-  // Không lưu session admin vào ổ đĩa để tránh auto-login
-  if (user.role !== 'admin') {
-    if (!db.sessions) db.sessions = [];
-    db.sessions.push({ token, userId: user.id, createdAt: new Date().toISOString() });
-    saveDatabase();
-  }
+  if (!db.sessions) db.sessions = [];
+  db.sessions.push({ token, userId: user.id, createdAt: new Date().toISOString() });
+  saveDatabase();
 
   res.json({
     token,
@@ -1699,6 +1731,32 @@ app.post('/api/admin/characters', authMiddleware, adminMiddleware, (req, res) =>
   res.json({ success: true, characters: db.characters });
 });
 
+// Admin: Bulk sync and force-save characters list
+app.post('/api/admin/characters/sync', authMiddleware, adminMiddleware, (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  const user = (req as any).user;
+  const { characters } = req.body;
+
+  if (Array.isArray(characters) && characters.length > 0) {
+    db.characters = characters;
+    saveDatabase();
+
+    db.admin_audit_logs.push({
+      id: `log_${Date.now()}`,
+      adminUsername: user.username,
+      action: 'SYNC_CHARACTERS',
+      target: 'CHARACTERS_LIST',
+      details: `Đồng bộ vĩnh viễn ${characters.length} nhân vật từ client`,
+      timestamp: new Date().toISOString(),
+    });
+    saveDatabase();
+
+    res.json({ success: true, message: 'Đã đồng bộ và lưu vĩnh viễn danh sách nhân vật!', characters: db.characters });
+    return;
+  }
+  res.status(400).json({ error: 'Dữ liệu danh sách nhân vật không hợp lệ.' });
+});
+
 // Admin: Adjust user balance manually
 app.post('/api/admin/users/adjust-balance', authMiddleware, adminMiddleware, (req, res) => {
   const admin = (req as any).user;
@@ -1976,6 +2034,9 @@ app.delete('/api/admin/character-comments/:id', authMiddleware, adminMiddleware,
   saveDatabase();
   res.json({ success: true, message: 'Đã xóa bình luận thành công.' });
 });
+
+// ======================== THỊ TRẤN CÁ MÈO (CAT FISH TOWN) ROUTES ========================
+setupCatTownRoutes(app, db, () => saveDatabase(), authMiddleware, adminMiddleware, getVietnamDateStr);
 
 // ======================== VITE INTEGRATION ========================
 

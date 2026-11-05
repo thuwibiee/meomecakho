@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { GachaConfig, GachaDropRate, Voucher, GachaCapsuleType } from '../types.ts';
+import { firebaseApi } from '../firebase.ts';
 import { Sparkles, ChevronRight, Gift, Check, X } from 'lucide-react';
 import { XuCaIcon } from './XuCaIcon.tsx';
 
@@ -387,7 +388,7 @@ export const GachaMachine: React.FC<GachaMachineProps> = ({
 
     try {
       // 3. Server call
-      const res = await fetch('/api/gacha/spin', {
+      const res = await firebaseApi('/api/gacha/spin', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -440,7 +441,7 @@ export const GachaMachine: React.FC<GachaMachineProps> = ({
 
     setIsClaimingVoucher(true);
     try {
-      const res = await fetch(`/api/vouchers/${currentVoucher.id}/claim`, {
+      const res = await firebaseApi(`/api/vouchers/${currentVoucher.id}/claim`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

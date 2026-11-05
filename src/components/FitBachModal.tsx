@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Character, CharacterFeedback } from '../types.ts';
+import { firebaseApi } from '../firebase.ts';
 import { X, Star, Heart, MessageSquareHeart, Send, Sparkles, User, AlertCircle } from 'lucide-react';
 
 interface FitBachModalProps {
@@ -36,7 +37,7 @@ export const FitBachModal: React.FC<FitBachModalProps> = ({
     if (!character) return;
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/characters/${character.id}/comments`);
+      const res = await firebaseApi(`/api/characters/${character.id}/comments`);
       const data = await res.json();
       if (res.ok) {
         setFeedbacks(data.feedbacks || []);
@@ -65,7 +66,7 @@ export const FitBachModal: React.FC<FitBachModalProps> = ({
     setError(null);
 
     try {
-      const res = await fetch(`/api/characters/${character.id}/comments`, {
+      const res = await firebaseApi(`/api/characters/${character.id}/comments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

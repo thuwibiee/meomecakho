@@ -17,6 +17,7 @@ import {
   ChevronUp
 } from 'lucide-react';
 import { SpecialOrder, User } from '../types.ts';
+import { firebaseApi } from '../firebase.ts';
 
 interface SpecialOrderSectionProps {
   user: User | null;
@@ -112,7 +113,7 @@ export const SpecialOrderSection: React.FC<SpecialOrderSectionProps> = ({
     if (!authToken) return;
     setIsLoadingHistory(true);
     try {
-      const res = await fetch('/api/special-orders/my', {
+      const res = await firebaseApi('/api/special-orders/my', {
         headers: { Authorization: `Bearer ${authToken}` },
       });
       const data = await res.json();
@@ -211,7 +212,7 @@ export const SpecialOrderSection: React.FC<SpecialOrderSectionProps> = ({
     setIsSubmitting(true);
 
     try {
-      const res = await fetch('/api/special-orders', {
+      const res = await firebaseApi('/api/special-orders', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

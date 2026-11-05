@@ -30,7 +30,7 @@
       "shortBio": "Hồ ly tiên sinh ngàn năm hóa hình, tính tình ôn nhu tựa ngọc, mỗi ngày đều chuẩn bị sẵn một bàn điểm tâm nóng hổi đợi bà về nhà.",
       "fullStory": "Lạc Tử Du là linh hồ chín đuôi tu luyện nghìn năm tại Côn Luân tiên sơn. Từng được tiệm Mèo Mê Cá Khô cưu mang thời sơ hóa, chàng nguyện ở lại trần thế, đem hương trà thanh nhã và ánh mắt cưng chiều dịu dàng nhất che chở cho một mình chủ tiệm.",
       "price": 30,
-      "studioUrl": "https://aistudio.google.com/prompt/lac-tu-du-ho-ly-tien-sinh",
+      "studioUrl": "https://aistudio.google.com/",
       "avatarUrl": "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600&auto=format&fit=crop&q=80",
       "isAvailable": true,
       "salesCount": 9,
@@ -282,6 +282,14 @@
       "target": "Lạc Tử Du",
       "details": "Cập nhật thông tin nhân vật Lạc Tử Du",
       "timestamp": "2026-10-31T10:57:56.547Z"
+    },
+    {
+      "id": "log_1793581410987",
+      "adminUsername": "meomecakho@6104",
+      "action": "UPDATE_CHARACTER",
+      "target": "Lạc Tử Du Test",
+      "details": "Cập nhật thông tin nhân vật Lạc Tử Du Test",
+      "timestamp": "2026-11-02T01:03:30.987Z"
     }
   ],
   "orderCounter": 1,

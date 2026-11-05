@@ -14,6 +14,8 @@ interface ShopSectionProps {
   onOpenAuth: () => void;
   isLoggedIn: boolean;
   userBalance: number;
+  isAdmin?: boolean;
+  onAdminEdit?: (character: Character) => void;
 }
 
 export const ShopSection: React.FC<ShopSectionProps> = ({
@@ -27,6 +29,8 @@ export const ShopSection: React.FC<ShopSectionProps> = ({
   onOpenAuth,
   isLoggedIn,
   userBalance,
+  isAdmin = false,
+  onAdminEdit,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -149,6 +153,8 @@ export const ShopSection: React.FC<ShopSectionProps> = ({
               onOpenStory={onOpenStory}
               onOpenComplain={onOpenComplain}
               onOpenFitBach={onOpenFitBach}
+              isAdmin={isAdmin}
+              onAdminEdit={onAdminEdit}
             />
           ))}
         </div>

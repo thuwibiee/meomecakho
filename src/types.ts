@@ -55,7 +55,12 @@ export type TransactionType =
   | 'DAILY_QUEST'
   | 'GACHA_SPIN'
   | 'VOUCHER_CLAIM'
-  | 'ADMIN_ADJUST';
+  | 'ADMIN_ADJUST'
+  | 'CAT_TOWN_FISHING'
+  | 'CAT_TOWN_GRILLING'
+  | 'CAT_TOWN_FORTUNE'
+  | 'CAT_TOWN_FURNITURE'
+  | 'CAT_TOWN_CARE';
 
 export interface WalletTransaction {
   id: string;
@@ -219,3 +224,123 @@ export interface LoyaltyStatusResponse {
     isCompleteToday: boolean;
   };
 }
+
+// ======================== THỊ TRẤN CÁ MÈO (CAT FISH TOWN) TYPES ========================
+
+export type CatTownFishRarity = 'common' | 'uncommon' | 'rare' | 'legendary';
+
+export interface CatTownFish {
+  id: string;
+  name: string;
+  rarity: CatTownFishRarity;
+  rewardCoins: number;
+  weightMin: number;
+  weightMax: number;
+  description: string;
+  color: string;
+  iconType: string;
+}
+
+export type FurnitureCategory = 'wallpaper' | 'floor' | 'furniture' | 'cat_item' | 'plant' | 'toy';
+
+export interface CatTownFurniture {
+  id: string;
+  name: string;
+  category: FurnitureCategory;
+  price: number;
+  description: string;
+  spriteType: string;
+  color: string;
+  dimensions: { w: number; h: number };
+}
+
+export type CatBreed = 'Mèo Mướp' | 'Mèo Cam' | 'Mèo Tam Thể' | 'Mèo Trắng' | 'Mèo Đen' | 'Mèo Xám';
+
+export interface CatTownCat {
+  id: string;
+  userId: string;
+  name: string;
+  breed: CatBreed;
+  happiness: number; // 0 - 100
+  energy: number; // 0 - 100
+  affection: number; // 0 - 100
+  mood: 'happy' | 'sleepy' | 'playful' | 'hungry' | 'love';
+  coatColor: string;
+  bornDate: string;
+  lastInteractedAt: string;
+}
+
+export interface CatTownPlacedItem {
+  id: string;
+  furnitureId: string;
+  gridX: number;
+  gridY: number;
+}
+
+export interface CatTownHouse {
+  userId: string;
+  wallpaper: string;
+  floor: string;
+  placedItems: CatTownPlacedItem[];
+}
+
+export interface CatTownInventoryItem {
+  id: string;
+  userId: string;
+  itemId: string;
+  itemType: 'fish' | 'cooked_fish' | 'furniture' | 'cat_food' | 'toy';
+  name: string;
+  quantity: number;
+  rarity?: CatTownFishRarity;
+  details?: {
+    quality?: 'undercooked' | 'perfect' | 'burnt';
+    weight?: number;
+    cookedAt?: string;
+    category?: FurnitureCategory;
+  };
+}
+
+export interface CatTownFortune {
+  id: string;
+  category: 'love' | 'wealth' | 'luck' | 'work' | 'cat_wisdom';
+  title: string;
+  prophecy: string;
+  luckyNumber: number;
+  luckyColor: string;
+  advice: string;
+}
+
+export interface CatTownUserProfile {
+  userId: string;
+  username: string;
+  joinedTownAt: string;
+  cat: CatTownCat;
+  house: CatTownHouse;
+  inventory: CatTownInventoryItem[];
+  dailyFishingCount: number;
+  dailyGrillingCount: number;
+  dailyFortuneClaimed: boolean;
+  lastActionDate: string;
+  stats: {
+    totalFishCaught: number;
+    totalFishGrilled: number;
+    totalFortunesTold: number;
+    totalFurnitureBought: number;
+  };
+}
+
+export interface CatTownConfig {
+  isEnabled: boolean;
+  dailyFishingLimit: number;
+  dailyGrillingLimit: number;
+  fishingRewardMin: number;
+  fishingRewardMax: number;
+  grillingRewardPerfect: number;
+  grillingRewardGood: number;
+  grillingRewardBurnt: number;
+  fortuneRewardCoins: number;
+  fishCatalog: CatTownFish[];
+  furnitureCatalog: CatTownFurniture[];
+  fortuneCatalog: CatTownFortune[];
+}
+
